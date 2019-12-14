@@ -82,7 +82,7 @@
             </ToolBarTray>
         </DockPanel>
 
-        <Grid Grid.Row="2" Background="Black">
+        <Grid Grid.Row="2" Background="White">
             <!--<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                 <utils:ZoomBorder Background="Gray">
                     <Canvas x:Name="ImageViewer"/>

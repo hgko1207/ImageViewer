@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 
 namespace ViewerProject.Utils
@@ -17,6 +13,7 @@ namespace ViewerProject.Utils
         public static BitmapImage Bitmap2BitmapImage(Bitmap bitmap, ImageFormat imageFormat)
         {
             BitmapImage bitmapimage = new BitmapImage();
+
             try
             {
                 using (MemoryStream memory = new MemoryStream())

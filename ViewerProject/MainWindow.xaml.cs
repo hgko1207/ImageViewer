@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using ViewerProject.Domain;
 using ViewerProject.Utils;
 
@@ -20,8 +21,7 @@ namespace ViewerProject
         private double viewerWidth; //화면에 보여지는 이미지 사이즈
         private double viewerHeight; //화면에 보여지는 이미지 사이즈
 
-        private double offsetX;
-        private double offsetY;
+        private HeaderInfo headerInfo;
 
         public MainWindow()
         {
@@ -48,7 +48,7 @@ namespace ViewerProject
                 GDALReader gdalReader = new GDALReader();
                 gdalReader.FileName = fileDialog.FileName;
                 gdalReader.Open(fileName);
-                HeaderInfo headerInfo = gdalReader.GetInfo();
+                headerInfo = gdalReader.GetInfo();
 
                 ImageFormat imageFormat = ImageFormat.Bmp;
                 if (fileName.ToLower().Contains(".png") || fileName.ToLower().Contains(".tif"))
@@ -56,28 +56,36 @@ namespace ViewerProject
                 else if (fileName.ToLower().Contains(".jpg") || fileName.ToLower().Contains(".jpeg"))
                     imageFormat = ImageFormat.Jpeg;
 
-                image = new Image()
-                {
-                    Source = ImageControl.Bitmap2BitmapImage(gdalReader.GetBitmap(0, 0, headerInfo.ImageWidth, headerInfo.ImageHeight), imageFormat),
-                    Stretch = Stretch.Fill
-                };
-
-                //image = new Image();
-                //image.Source = new BitmapImage(new Uri(fileName));
+                image = new Image();
+                //image.Source = ImageControl.Bitmap2BitmapImage(gdalReader.GetBitmap(0, 0, headerInfo.ImageWidth, headerInfo.ImageHeight), imageFormat);
+                image.Source = new BitmapImage(new Uri(fileName));
 
                 image.Width = ImageViewer.ActualWidth;
                 image.Height = ImageViewer.ActualHeight;
                 image.Stretch = Stretch.Uniform;
 
-                Canvas.SetTop(image, 0);
-                Canvas.SetLeft(image, 0);
+                //ImageBrush uniformBrush = new ImageBrush();
+                //uniformBrush.ImageSource = new BitmapImage(new Uri(fileName));
+                //uniformBrush.Stretch = Stretch.Uniform;
+
+                //// Freeze the brush (make it unmodifiable) for performance benefits.
+                //uniformBrush.Freeze();
+
+                //Rectangle rectangle1 = new Rectangle();
+                //rectangle1.Width = ImageViewer.ActualWidth;
+                //rectangle1.Height = ImageViewer.ActualHeight;
+                //rectangle1.Stroke = Brushes.MediumBlue;
+                //rectangle1.StrokeThickness = 1.0;
+                //rectangle1.Fill = uniformBrush;
+
+                //Canvas.SetTop(image, 0);
+                //Canvas.SetLeft(image, 0);
                 ImageViewer.Children.Add(image);
 
-                viewerWidth = image.ActualWidth;
-                viewerHeight = image.ActualHeight;
+                Console.WriteLine(image.Width + ", " + image.ActualWidth); 
+                Console.WriteLine(myScaleTransform.ScaleX + ", " + myScaleTransform.ScaleY);
+                Console.WriteLine(myTranslateTransform.X + ", " + myTranslateTransform.Y);
 
-                offsetX = (this.ActualWidth - viewerWidth) / 2;
-                offsetY = (this.ActualHeight - viewerHeight) / 2;
             }
         }
 
@@ -133,18 +141,14 @@ namespace ViewerProject
                 }
 
                 var position = e.GetPosition(ImageViewer);
-                var imageControl = this.image as Image;
-
-                //var x = Math.Floor(position.X * 7851 / imageControl.ActualWidth);
-                //var y = Math.Floor(position.Y * 7991 / imageControl.ActualHeight);
 
                 Point test = new Point()
                 {
-                    X = position.X / ImageViewer.ActualWidth * 7851,
-                    Y = position.Y / ImageViewer.ActualHeight * 7991
+                    X = position.X / ImageViewer.ActualWidth * headerInfo.ImageWidth,
+                    Y = position.Y / ImageViewer.ActualHeight * headerInfo.ImageHeight
                 };
 
-                PointText.Text = (position.X - offsetX) + ", " + (position.Y - offsetY) + " ============ " + test.X + ", " + test.Y;
+                PointText.Text = (position.X) + ", " + (position.Y) + " ============ " + test.X + ", " + test.Y;
             }
         }
 
@@ -153,7 +157,7 @@ namespace ViewerProject
             if (image != null)
             {
                 var tt = myTranslateTransform;
-                start = e.GetPosition(this);
+                start = e.GetPosition(ImageViewer);
                 origin = new Point(tt.X, tt.Y);
                 this.Cursor = Cursors.Hand;
                 ImageViewer.CaptureMouse();
@@ -164,8 +168,8 @@ namespace ViewerProject
         {
             if (image != null)
             {
-                ImageViewer.ReleaseMouseCapture();
                 this.Cursor = Cursors.Arrow;
+                ImageViewer.ReleaseMouseCapture();
             }
         }
 
@@ -238,7 +242,5 @@ namespace ViewerProject
                 tt.Y = 0.0;
             }
         }
-
-        
     }
 }
