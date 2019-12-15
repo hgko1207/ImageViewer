@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ViewerProject.Domain
+﻿namespace ViewerProject.Domain
 {
-    public class HeaderInfo
+    public class ImageInfo
     {
         /** 영상 파일 이름 */
         public string FileName { get; set; }
@@ -23,5 +17,11 @@ namespace ViewerProject.Domain
         public string DataType { get; set; }
 
         public string Description { get; set; }
+
+        /** 화면에 보여지는 이미지 사이즈 */
+        public double ViewerWidth { get; set; }
+        public double ViewerHeight { get; set; }
+
+        public Boundary ImageBoundary { get; internal set; }
     }
 }

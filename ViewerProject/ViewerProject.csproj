@@ -73,8 +73,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Domain\Boundary.cs" />
-    <Compile Include="Domain\HeaderInfo.cs" />
-    <Compile Include="Domain\MapInfo.cs" />
+    <Compile Include="Domain\ImageInfo.cs" />
     <Compile Include="Domain\RasterData.cs" />
     <Compile Include="Utils\GDALReader.cs" />
     <Compile Include="Utils\GeometryControl.cs" />

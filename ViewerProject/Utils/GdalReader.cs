@@ -11,16 +11,11 @@ namespace ViewerProject.Utils
 {
     public class GDALReader
     {
-        private Dataset dataset;
-
         public string FileName { get; set; }
 
+        private Dataset dataset;
+
         private List<RasterData> rasterDatas;
-
-        public double ViewerWidth { get; set; } //화면에 보여지는 이미지 사이즈
-        public double ViewerHeight { get; set; } //화면에 보여지는 이미지 사이즈
-
-        public Boundary ImageBoundary { get; internal set; }
 
         public void Open(String filePath)
         {
@@ -45,28 +40,28 @@ namespace ViewerProject.Utils
         /**
 	    * 헤더 생성
 	    */
-        public HeaderInfo GetInfo()
+        public ImageInfo GetInfo()
         {
-            HeaderInfo headerInfo = new HeaderInfo();
-            headerInfo.FileName = FileName;
-            headerInfo.FileType = dataset.GetDriver().ShortName + "/" + dataset.GetDriver().LongName;
-            headerInfo.Band = dataset.RasterCount;
+            ImageInfo imageInfo = new ImageInfo();
+            imageInfo.FileName = FileName;
+            imageInfo.FileType = dataset.GetDriver().ShortName + "/" + dataset.GetDriver().LongName;
+            imageInfo.Band = dataset.RasterCount;
 
             String dataType = Gdal.GetDataTypeName(dataset.GetRasterBand(1).DataType);
-            headerInfo.DataType = dataType;
-            headerInfo.Description = dataset.GetDescription();
-            headerInfo.ImageWidth = dataset.RasterXSize;
-            headerInfo.ImageHeight = dataset.RasterYSize;
+            imageInfo.DataType = dataType;
+            imageInfo.Description = dataset.GetDescription();
+            imageInfo.ImageWidth = dataset.RasterXSize;
+            imageInfo.ImageHeight = dataset.RasterYSize;
+            imageInfo.ViewerWidth = dataset.RasterXSize;
+            imageInfo.ViewerHeight = dataset.RasterYSize;
 
-            ViewerWidth = headerInfo.ImageWidth;
-            ViewerHeight = headerInfo.ImageHeight;
-
+            Boundary ImageBoundary = null;
             if (GeometryControl.GetImageBoundary(dataset, out double minX, out double minY, out double maxX, out double maxY))
                 ImageBoundary = new Boundary(minX, minY, maxX, maxY, 0, 0);
-            else
-                ImageBoundary = null;
 
-            return headerInfo;
+            imageInfo.ImageBoundary = ImageBoundary;
+
+            return imageInfo;
         }
 
         public Bitmap GetBitmap(int xOff, int yOff, int xSize, int ySize)
@@ -152,7 +147,6 @@ namespace ViewerProject.Utils
             dst.ImportFromEPSG(4326);
             Console.WriteLine("DEST IsGeographic:" + dst.IsGeographic() + " IsProjected:" + dst.IsProjected());
 
-
             //CoordinateTransformation ct = new CoordinateTransformation(src, dst);
             //double[] p = new double[3];
             //p[0] = 100; p[1] = 100; p[2] = 0;
@@ -160,7 +154,7 @@ namespace ViewerProject.Utils
             //Console.WriteLine("x:" + p[0] + " y:" + p[1] + " z:" + p[2]);
         }
 
-        public void ImageToWorld(double x, double y, out double lond, out double latd)
+        public void ImageToWorld(double x, double y, out double longitude, out double latitude)
         {
             double[] adfGeoTransform = new double[6];
             double[] p = new double[3];
@@ -172,13 +166,14 @@ namespace ViewerProject.Utils
             SpatialReference src = new SpatialReference("");
             string s = dataset.GetProjectionRef();
             src.ImportFromWkt(ref s);
-            //src.SetUTM(41, 1);
+
             SpatialReference wgs84 = new SpatialReference("");
             wgs84.SetWellKnownGeogCS("WGS84");
             CoordinateTransformation ct = new CoordinateTransformation(src, wgs84);
             ct.TransformPoint(p);
-            lond = p[0];
-            latd = p[1];
+
+            longitude = p[0];
+            latitude = p[1];
 
             ct.Dispose();
             wgs84.Dispose();

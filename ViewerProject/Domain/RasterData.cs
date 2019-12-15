@@ -1,9 +1,4 @@
 ﻿using OSGeo.GDAL;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace ViewerProject.Domain
@@ -13,8 +8,8 @@ namespace ViewerProject.Domain
         public float[] Data { get; internal set; }
 
         public Band Band { get; internal set; }
-        private Rect rect;
 
+        private Rect rect;
 
         public RasterData(Band band)
         {
