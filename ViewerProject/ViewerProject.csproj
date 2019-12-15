@@ -72,12 +72,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Domain\Boundary.cs" />
     <Compile Include="Domain\HeaderInfo.cs" />
     <Compile Include="Domain\MapInfo.cs" />
     <Compile Include="Domain\RasterData.cs" />
     <Compile Include="Utils\GDALReader.cs" />
+    <Compile Include="Utils\GeometryControl.cs" />
     <Compile Include="Utils\ImageControl.cs" />
-    <Compile Include="Utils\ZoomBorder.cs" />
+    <Compile Include="Utils\ZoomBorder1.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

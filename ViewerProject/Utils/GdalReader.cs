@@ -17,9 +17,16 @@ namespace ViewerProject.Utils
 
         private List<RasterData> rasterDatas;
 
+        public double ViewerWidth { get; set; } //화면에 보여지는 이미지 사이즈
+        public double ViewerHeight { get; set; } //화면에 보여지는 이미지 사이즈
+
+        public Boundary ImageBoundary { get; internal set; }
+
         public void Open(String filePath)
         {
             GdalConfiguration.ConfigureGdal();
+            GdalConfiguration.ConfigureOgr();
+
             dataset = Gdal.Open(filePath, Access.GA_ReadOnly);
             if (dataset == null)
             {
@@ -33,7 +40,6 @@ namespace ViewerProject.Utils
                 Band band = dataset.GetRasterBand(i);
                 rasterDatas.Add(new RasterData(band));
             }
-
         }
 
         /**
@@ -52,7 +58,13 @@ namespace ViewerProject.Utils
             headerInfo.ImageWidth = dataset.RasterXSize;
             headerInfo.ImageHeight = dataset.RasterYSize;
 
-            SetMapInfo(headerInfo);
+            ViewerWidth = headerInfo.ImageWidth;
+            ViewerHeight = headerInfo.ImageHeight;
+
+            if (GeometryControl.GetImageBoundary(dataset, out double minX, out double minY, out double maxX, out double maxY))
+                ImageBoundary = new Boundary(minX, minY, maxX, maxY, 0, 0);
+            else
+                ImageBoundary = null;
 
             return headerInfo;
         }
@@ -120,19 +132,6 @@ namespace ViewerProject.Utils
             bytes = value.Select(d => (byte)(int)((d - min) * 255 / denominator)).ToArray();
             
             return bytes;
-        }
-
-        private void SetMapInfo(HeaderInfo headerInfo)
-        {
-            String projection = dataset.GetProjectionRef();
-            if (String.IsNullOrEmpty(projection))
-            {
-                projection = dataset.GetGCPProjection();
-            }
-
-            Console.WriteLine(projection);
-            
-
         }
 
         public void PointToCoordinate()

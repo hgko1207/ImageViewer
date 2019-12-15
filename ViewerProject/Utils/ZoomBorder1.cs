@@ -6,7 +6,7 @@ using System.Windows.Media;
 
 namespace ViewerProject.Utils
 {
-    public class ZoomBorder : Border
+    public class ZoomBorder1 : Border
     {
         private UIElement child = null;
         private Point origin;
