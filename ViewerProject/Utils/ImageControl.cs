@@ -12,7 +12,7 @@ namespace ViewerProject.Utils
     {
         public static BitmapImage Bitmap2BitmapImage(Bitmap bitmap, ImageFormat imageFormat)
         {
-            BitmapImage bitmapimage = new BitmapImage();
+            BitmapImage bitmapImage = new BitmapImage();
 
             try
             {
@@ -20,10 +20,11 @@ namespace ViewerProject.Utils
                 {
                     bitmap.Save(memory, imageFormat);
                     memory.Position = 0;
-                    bitmapimage.BeginInit();
-                    bitmapimage.StreamSource = memory;
-                    bitmapimage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapimage.EndInit();
+                    bitmapImage.BeginInit();
+                    bitmapImage.StreamSource = memory;
+                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmapImage.EndInit();
+                    bitmapImage.Freeze();
                 }
             }
             catch (Exception e)
@@ -31,13 +32,13 @@ namespace ViewerProject.Utils
                 Debug.WriteLine(e.ToString());
             }
 
-            return bitmapimage;
+            return bitmapImage;
         }
 
-        public static Bitmap GetBitmap(byte[] bytes, int width, int height)
+        public static Bitmap GetBitmap(byte[] bytes, int width, int height, PixelFormat pixelFormat)
         {
             Bitmap bitmap = new Bitmap(width, height);
-            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, pixelFormat);
             Marshal.Copy(bytes, 0, bitmapData.Scan0, bytes.Length);
             bitmap.UnlockBits(bitmapData);
 

@@ -75,10 +75,15 @@
     <Compile Include="Domain\Boundary.cs" />
     <Compile Include="Domain\ImageInfo.cs" />
     <Compile Include="Domain\RasterData.cs" />
+    <Compile Include="Event\EventAggregator.cs" />
+    <Compile Include="Event\EventManager.cs" />
     <Compile Include="Utils\GDALReader.cs" />
     <Compile Include="Utils\GeometryControl.cs" />
     <Compile Include="Utils\ImageControl.cs" />
     <Compile Include="Utils\ZoomBorder1.cs" />
+    <Compile Include="Views\ImageViewer.xaml.cs">
+      <DependentUpon>ImageViewer.xaml</DependentUpon>
+    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -92,6 +97,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Views\ImageViewer.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

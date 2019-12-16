@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace ViewerProject.Utils
 {
-    public enum EPSGtype
+    public enum EPSGType
     {
         OGC_WKT,
         PROJ4,
@@ -30,7 +30,7 @@ namespace ViewerProject.Utils
                 if (wkt == "" || String.IsNullOrEmpty(coordWKT))
                     return false;
 
-                TransformWKT(coordWKT, 4326, EPSGtype.OGC_WKT, EPSGtype.EPSG_NUM, ref wkt);
+                TransformWKT(coordWKT, 4326, EPSGType.OGC_WKT, EPSGType.EPSG_NUM, ref wkt);
 
                 string[] coords = wkt.Split('(')[2].Split(')')[0].Split(',');
                 foreach (string coord in coords)
@@ -101,7 +101,7 @@ namespace ViewerProject.Utils
             return coord;
         }
 
-        private  static void TransformWKT(object srcProj, object dstProj, EPSGtype srcType, EPSGtype dstType, ref string wkt)
+        private  static void TransformWKT(object srcProj, object dstProj, EPSGType srcType, EPSGType dstType, ref string wkt)
         {
             try
             {
@@ -109,14 +109,14 @@ namespace ViewerProject.Utils
                 SpatialReference src = new SpatialReference("");
                 switch (srcType)
                 {
-                    case EPSGtype.OGC_WKT:
+                    case EPSGType.OGC_WKT:
                         string srcProj_str = srcProj.ToString();
                         src.ImportFromWkt(ref srcProj_str);
                         break;
-                    case EPSGtype.PROJ4:
+                    case EPSGType.PROJ4:
                         src.ImportFromProj4(srcProj.ToString());
                         break;
-                    case EPSGtype.EPSG_NUM:
+                    case EPSGType.EPSG_NUM:
                         src.ImportFromEPSG((int)srcProj);
                         break;
                 }
@@ -124,14 +124,14 @@ namespace ViewerProject.Utils
                 SpatialReference dst = new SpatialReference("");
                 switch (dstType)
                 {
-                    case EPSGtype.OGC_WKT:
+                    case EPSGType.OGC_WKT:
                         string dstProj_str = dstProj.ToString();
                         dst.ImportFromWkt(ref dstProj_str);
                         break;
-                    case EPSGtype.PROJ4:
+                    case EPSGType.PROJ4:
                         dst.ImportFromProj4(dstProj.ToString());
                         break;
-                    case EPSGtype.EPSG_NUM:
+                    case EPSGType.EPSG_NUM:
                         dst.ImportFromEPSG((int)dstProj);
                         break;
                 }

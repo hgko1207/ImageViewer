@@ -34,20 +34,6 @@
             Left = left;
         }
 
-        public void SetBoundary(double minX, double minY, double maxX, double maxY)
-        {
-            MinX = minX;
-            MinY = minY;
-            MaxX = maxX;
-            MaxY = maxY;
-        }
-
-        public void SetMargin(double top, double left)
-        {
-            Top = top;
-            Left = left;
-        }
-
         public void CalculateMargin(Boundary canvasBoundary, double pixelPerDegreeX, double pixelPerDegreeY)
         {
             Left = (MinX - canvasBoundary.MinX) * pixelPerDegreeX;

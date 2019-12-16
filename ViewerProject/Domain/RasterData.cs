@@ -5,36 +5,57 @@ namespace ViewerProject.Domain
 {
     public class RasterData
     {
-        public float[] Data { get; internal set; }
+        public double[] Data { get; internal set; }
 
         public Band Band { get; internal set; }
 
         private Rect rect;
+
+        public double[] MinMax { get; internal set; }
 
         public RasterData(Band band)
         {
             Band = band;
             Data = null;
             rect = new Rect();
+            MinMax = new double[2];
         }
 
-        private float[] ReadRasterData(int xOff, int yOff, int xSize, int ySize)
+        public double[] ReadRasterData(int xOff, int yOff, int xSize, int ySize)
         {
-            float[] buf = new float[xSize * ySize];
+            double[] buf = new double[xSize * ySize];
             Band.ReadRaster(xOff, yOff, xSize, ySize, buf, xSize, ySize, 0, 0);
             Data = buf;
+
+            Band.ComputeRasterMinMax(MinMax, 0);
 
             rect.X = xOff;
             rect.Y = yOff;
             rect.Width = xSize;
             rect.Height = ySize;
 
-            return (float[])buf.Clone();
+            return (double[])buf.Clone();
         }
 
-        private float[] GetContainData(int xOff, int yOff, int xSize, int ySize)
+        public byte[] ReadRasterData2(int xOff, int yOff, int xSize, int ySize)
         {
-            float[] buf = new float[xSize * ySize];
+            byte[] buf = new byte[xSize * ySize];
+            Band.ReadRaster(xOff, yOff, xSize, ySize, buf, xSize, ySize, 0, 0);
+            //Data = (double[])buf.Clone();
+
+            Band.ComputeRasterMinMax(MinMax, 0);
+
+            rect.X = xOff;
+            rect.Y = yOff;
+            rect.Width = xSize;
+            rect.Height = ySize;
+
+            return buf;
+        }
+
+        private double[] GetContainData(int xOff, int yOff, int xSize, int ySize)
+        {
+            double[] buf = new double[xSize * ySize];
             for (int j = 0; j < ySize; j++)
             {
                 for (int i = 0; i < xSize; i++)
@@ -46,7 +67,7 @@ namespace ViewerProject.Domain
             return buf;
         }
 
-        public float[] GetRaster(Rect rect)
+        public double[] GetRaster(Rect rect)
         {
             if (this.rect.Contains(rect))
                 return GetContainData((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height);
