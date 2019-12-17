@@ -7,6 +7,8 @@ namespace ViewerProject.Domain
     {
         public double[] Data { get; internal set; }
 
+        public int[] Data2 { get; internal set; }
+
         public Band Band { get; internal set; }
 
         private Rect rect;
@@ -37,11 +39,11 @@ namespace ViewerProject.Domain
             return (double[])buf.Clone();
         }
 
-        public byte[] ReadRasterData2(int xOff, int yOff, int xSize, int ySize)
+        public int[] ReadRasterData2(int xOff, int yOff, int xSize, int ySize)
         {
-            byte[] buf = new byte[xSize * ySize];
+            int[] buf = new int[xSize * ySize];
             Band.ReadRaster(xOff, yOff, xSize, ySize, buf, xSize, ySize, 0, 0);
-            //Data = (double[])buf.Clone();
+            Data2 = buf;
 
             Band.ComputeRasterMinMax(MinMax, 0);
 

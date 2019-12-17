@@ -57,6 +57,8 @@ namespace ViewerProject.Views
             fileDialog.RestoreDirectory = true;
             if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
+                ZoomFit();
+
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
 

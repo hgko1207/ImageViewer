@@ -37,8 +37,8 @@ namespace ViewerProject.Utils
 
         public static Bitmap GetBitmap(byte[] bytes, int width, int height, PixelFormat pixelFormat)
         {
-            Bitmap bitmap = new Bitmap(width, height);
-            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, pixelFormat);
+            Bitmap bitmap = new Bitmap(width, height, pixelFormat);
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadWrite, pixelFormat);
             Marshal.Copy(bytes, 0, bitmapData.Scan0, bytes.Length);
             bitmap.UnlockBits(bitmapData);
 

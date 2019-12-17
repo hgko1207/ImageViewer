@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using ViewerProject.Event;
 using ViewerProject.Views;
 
@@ -13,6 +14,7 @@ namespace ViewerProject
             InitializeComponent();
 
             EventAggregator.MouseMoveEvent.Subscribe(CanvasMouseMoveEvent);
+            EventAggregator.ProgressEvent.Subscribe(ProgressEvent);
         }
 
         private void CommonCommandBindingCanExecute(object sender, CanExecuteRoutedEventArgs e)
@@ -51,6 +53,11 @@ namespace ViewerProject
         private void CanvasMouseMoveEvent(string value)
         {
             PointText.Text = value;
+        }
+
+        private void ProgressEvent(int value)
+        {
+            ImageProgress.Dispatcher.Invoke(() => ImageProgress.Value = value + 1, DispatcherPriority.Background);
         }
     }
 }
