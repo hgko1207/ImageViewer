@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -20,6 +21,8 @@ namespace ViewerProject.Utils
         private Dataset dataset;
 
         private List<RasterData> rasterDatas;
+
+        private int[] levels;
 
         public void Open(String filePath)
         {
@@ -48,7 +51,7 @@ namespace ViewerProject.Utils
          */
         private void BuildOverview()
         {
-            int[] levels = new int[] { 2, 4, 8, 16 };
+            levels = new int[] { 2, 4, 8, 16 };
             if (dataset.BuildOverviews("NEAREST", levels, new Gdal.GDALProgressFuncDelegate(ProgressFunc), "Sample Data") != (int)CPLErr.CE_None)
             {
                 Console.WriteLine("The BuildOverviews operation doesn't work");
@@ -94,20 +97,20 @@ namespace ViewerProject.Utils
         /**
         * 헤더 생성
         */
-        public ImageInfo GetInfo()
+        public ImageInfo GetImageInfo()
         {
             ImageInfo imageInfo = new ImageInfo();
-            imageInfo.FileName = FileName;
+            imageInfo.FileName = Path.GetFileName(FileName);
             imageInfo.FileType = dataset.GetDriver().ShortName + "/" + dataset.GetDriver().LongName;
             imageInfo.Band = dataset.RasterCount;
 
-            String dataType = Gdal.GetDataTypeName(dataset.GetRasterBand(1).DataType);
-            imageInfo.DataType = dataType;
+            imageInfo.DataType = Gdal.GetDataTypeName(dataset.GetRasterBand(1).DataType);
             imageInfo.Description = dataset.GetDescription();
             imageInfo.ImageWidth = dataset.RasterXSize;
             imageInfo.ImageHeight = dataset.RasterYSize;
             imageInfo.ViewerWidth = dataset.RasterXSize;
             imageInfo.ViewerHeight = dataset.RasterYSize;
+            imageInfo.Interleave = GdalUtil.ReportImageStructureMetadata(dataset);
 
             Boundary ImageBoundary = null;
             if (GeometryControl.GetImageBoundary(dataset, out double minX, out double minY, out double maxX, out double maxY))
@@ -115,27 +118,44 @@ namespace ViewerProject.Utils
 
             imageInfo.ImageBoundary = ImageBoundary;
 
+            ImageFormat imageFormat = ImageFormat.Bmp;
+            if (FileName.ToLower().Contains(".png") || FileName.ToLower().Contains(".tif"))
+                imageFormat = ImageFormat.Png;
+            else if (FileName.ToLower().Contains(".jpg") || FileName.ToLower().Contains(".jpeg"))
+                imageFormat = ImageFormat.Jpeg;
+
+            imageInfo.ImageFormat = imageFormat;
+
+            SetMapInfo(imageInfo);
+
             return imageInfo;
         }
 
-        public Bitmap GetBitmap(int xOff, int yOff, int xSize, int ySize)
+        private void SetMapInfo(ImageInfo imageInfo)
         {
-            //if (rasterDatas.Count == 1)
-            //    return GetGrayBitmap2(xOff, yOff, xSize, ySize);
-            //else
-            //    return GetBitmapDirect(xOff, yOff, xSize, ySize, xSize, ySize);
+            string projection = dataset.GetProjectionRef();
+            if (!string.IsNullOrEmpty(projection))
+            {
+                SpatialReference sr = new SpatialReference(projection);
 
-            //return GetBitmapGrayDirect(dataset, 0);
-            return ReadGrayBitmap(xOff, yOff, xSize, ySize, 2);
-            //return GetGrayBitmap(xOff, yOff, xSize, ySize);
-            //return GetBitmapDirect(xOff, yOff, xSize, ySize, xSize, ySize);
+                MapInfo mapInfo = new MapInfo();
+                mapInfo.Projcs = sr.GetAttrValue("PROJCS", 0);
+                mapInfo.Unit = sr.GetAttrValue("UNIT", 0);
+
+                imageInfo.MapInfo = mapInfo;
+            }
         }
 
-        private Bitmap GetBitmapDirect(int xOff, int yOff, int width, int height, int imageWidth, int imageHeight)
+        public Bitmap GetBitmap(int xOff, int yOff, int xSize, int ySize, int overview)
         {
-            if (dataset.RasterCount == 0)
-                return null;
+            if (rasterDatas.Count == 1)
+                return ReadGrayBitmap(xOff, yOff, xSize, ySize, overview);
+            else
+                return ReadRgbBitmap(xOff, yOff, xSize, ySize, xSize, ySize);
+        }
 
+        private Bitmap ReadRgbBitmap(int xOff, int yOff, int width, int height, int imageWidth, int imageHeight)
+        {
             int[] bandMap = new int[4] { 0, 0, 0, 0 };
             int channelCount = 1;
             bool hasAlpha = false;
@@ -287,17 +307,10 @@ namespace ViewerProject.Utils
             // Use GDAL raster reading methods to read the image data directly into the Bitmap
             BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, imageWidth, imageHeight), ImageLockMode.ReadWrite, pixelFormat);
 
-            Console.WriteLine(dataset.GetRasterBand(1).DataType);
-            Console.WriteLine(dataType);
-
             try
             {
                 int stride = bitmapData.Stride;
                 IntPtr buf = bitmapData.Scan0;
-
-                //Band band = dataset.GetRasterBand(1);
-                //band.ReadRaster(yOff, yOff, width, height, buf, imageWidth, imageHeight, DataType.GDT_UInt16, 1, stride);
-
                 dataset.ReadRaster(xOff, yOff, width, height, buf, imageWidth, imageHeight, dataType, channelCount, bandMap, pixelSpace, stride, 1);
             }
             finally
@@ -310,15 +323,10 @@ namespace ViewerProject.Utils
 
         private Bitmap GetGrayBitmap(int xOff, int yOff, int xSize, int ySize)
         {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
             Rect rect = new Rect(xOff, yOff, xSize, ySize);
 
             RasterData rasterData = rasterDatas[0];
             double[] data = rasterData.ReadRasterData((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height);
-
-            Debug.WriteLine("GetRaster : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
 
             //float min = data.Min();
             //float max = data.Max();
@@ -326,10 +334,6 @@ namespace ViewerProject.Utils
             double min = rasterData.MinMax[0];
             double max = rasterData.MinMax[1];
             double denominator = max - min;
-
-            String dataType = Gdal.GetDataTypeName(dataset.GetRasterBand(1).DataType);
-            Console.WriteLine(dataType);
-            Debug.WriteLine("gray : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
 
             const int bpp = 4;
             byte[] bytes = new byte[xSize * ySize * bpp];
@@ -347,128 +351,7 @@ namespace ViewerProject.Utils
                 }
             }
 
-            stopwatch.Stop();
-            Debug.WriteLine("bytes : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
-
             return ImageControl.GetBitmap(bytes, xSize, ySize, PixelFormat.Format32bppRgb);
-        }
-
-        private Bitmap GetGrayBitmap2(int xOff, int yOff, int xSize, int ySize)
-        {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            Rect rect = new Rect();
-            rect.X = xOff;
-            rect.Y = yOff;
-            rect.Width = xSize;
-            rect.Height = ySize;
-
-            RasterData rasterData = rasterDatas[0];
-            int[] data = rasterData.ReadRasterData2((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height);
-
-            Debug.WriteLine("GetRaster : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
-
-            float min = data.Min();
-            float max = data.Max();
-            //double min = rasterData.MinMax[0];
-            //double max = rasterData.MinMax[1];
-            double denominator = max - min;
-
-            Band band = dataset.GetRasterBand(1);
-
-            String dataType = Gdal.GetDataTypeName(dataset.GetRasterBand(1).DataType);
-            Console.WriteLine(dataType);
-            Console.WriteLine($"{min}, {max}, {denominator}");
-            Console.WriteLine($"Band : {dataset.RasterCount}");
-            Console.WriteLine($"GetRasterColorInterpretation : {band.GetRasterColorInterpretation()}");
-
-            Debug.WriteLine("gray : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
-
-            double stretchRate = 255 / denominator;
-
-            byte[] bytes = new byte[data.Length];
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                if (data[i] != 0)
-                {
-                    bytes[i] = DoubleToByte((data[i] - min) * stretchRate);
-                    //bytes[i] = (byte)data[i];
-                }
-                else
-                {
-                    bytes[i] = 0;
-                }
-            }
-
-            //const int bpp = 3;
-            //byte[] bytes = new byte[xSize * ySize * bpp];
-            //for (int row = 0; row < ySize; row++)
-            //{
-            //    for (int col = 0; col < xSize; col++)
-            //    {
-            //        double result = data[row * xSize + col];
-            //        byte value = (byte)(int)((result - min) * stretchRate);
-
-            //        bytes[row * xSize * bpp + col * bpp] = value;
-            //        bytes[row * xSize * bpp + col * bpp + 1] = value;
-            //        bytes[row * xSize * bpp + col * bpp + 2] = value;
-            //        //bytes[row * xSize * bpp + col * bpp + 3] = 255;
-            //    }
-            //}
-
-            stopwatch.Stop();
-            Debug.WriteLine("bytes : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
-
-            return ImageControl.GetBitmap(bytes, xSize, ySize, PixelFormat.Format8bppIndexed);
-        }
-
-        private byte DoubleToByte(double value)
-        {
-            if (value > 255 || value < 0)
-            {
-                value = 255;
-            }
-
-            return (byte)value;
-        }
-
-        private Bitmap GetBitmapGrayDirect(Dataset ds, int iOverview)
-        {
-            Band band = ds.GetRasterBand(1);
-
-            int width = band.XSize;
-            int height = band.YSize;
-
-            Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
-
-            DateTime start = DateTime.Now;
-
-            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
-
-            String dataType = Gdal.GetDataTypeName(band.DataType);
-            Console.WriteLine(dataType);
-
-            try
-            {
-                ColorPalette pal = bitmap.Palette;
-                for (int i = 0; i < 256; i++)
-                    pal.Entries[i] = Color.FromArgb(255, i, i, i);
-                bitmap.Palette = pal;
-
-                int stride = bitmapData.Stride;
-                IntPtr buf = bitmapData.Scan0;
-                band.ReadRaster(0, 0, width, height, buf, width, height, band.DataType, 1, stride);
-
-                TimeSpan renderTime = DateTime.Now - start;
-                Console.WriteLine("SaveBitmapDirect fetch time: " + renderTime.TotalMilliseconds + " ms");
-            }
-            finally
-            {
-                bitmap.UnlockBits(bitmapData);
-            }
-
-            return bitmap;
         }
 
         private Bitmap ReadGrayBitmap(int xOffset, int yOffset, int xSize, int ySize, int overview)
@@ -479,18 +362,24 @@ namespace ViewerProject.Utils
                 band = band.GetOverview(overview - 1);
             }
 
-            int width = band.XSize;
-            int height = band.YSize;
+            int level = levels[overview - 1];
+            int width = (xSize - xOffset) / level;
+            int height = (ySize - yOffset) / level;
+            int xOff = xOffset / level;
+            int yOff = yOffset / level;
 
-            if (xOffset + width > band.XSize)
-            {
-                width = band.XSize - xOffset;
-            }
+            //int width = band.XSize;
+            //int height = band.YSize;
 
-            if (yOffset + height > band.YSize)
-            {
-                height = band.YSize - yOffset;
-            }
+            //if (xOffset + width > band.XSize)
+            //{
+            //    width = band.XSize - xOffset;
+            //}
+
+            //if (yOffset + height > band.YSize)
+            //{
+            //    height = band.YSize - yOffset;
+            //}
 
             double[] minmax = new double[2];
             band.ComputeRasterMinMax(minmax, 0);
@@ -499,7 +388,7 @@ namespace ViewerProject.Utils
             double stretchRate = 255 / (max - min);
 
             int[] data = new int[width * height];
-            band.ReadRaster(xOffset, yOffset, width, height, data, width, height, 0, 0);
+            band.ReadRaster(xOff, yOff, width, height, data, width, height, 0, 0);
 
             Bitmap bitmap = new Bitmap(width, height, PixelFormat.Format24bppRgb);
             BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadWrite, bitmap.PixelFormat);
@@ -590,13 +479,6 @@ namespace ViewerProject.Utils
             }
 
             return ImageControl.GetBitmap(bytes, xSize, ySize, PixelFormat.Format32bppArgb);
-        }
-
-        private byte[] GetByteValue(float[] value, int width, int height, double min, double max)
-        {
-            double denominator = max - min;
-            byte[] bytes = value.Select(d => (byte)(int)((d - min) * 255 / denominator)).ToArray();
-            return bytes;
         }
 
         public System.Windows.Point ImageToWorld(double x, double y)

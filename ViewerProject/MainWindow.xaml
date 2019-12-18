@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:ViewerProject.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="800" Width="1200">
+        Title="MainWindow" Height="800" Width="1280">
     <Window.CommandBindings>
         <CommandBinding Command="Open" CanExecute="CommonCommandBindingCanExecute" Executed="OpenCommandExecuted" />
         <CommandBinding Command="Save" CanExecute="CommonCommandBindingCanExecute" />
@@ -32,54 +32,55 @@
             </Menu>
         </DockPanel>
 
-        <DockPanel Grid.Row="1" Margin="0">
-            <ToolBarTray DockPanel.Dock="Top">
-                <ToolBar>
-                    <Button Command="Open" Margin="5 0 0 0">
-                        <StackPanel>
-                            <Image Source="/Images/file_open.png" Width="20" Height="20"/>
-                            <TextBlock>Open</TextBlock>
-                        </StackPanel>
-                    </Button>
-                    <Button Command="Save" Margin="5 0">
-                        <StackPanel>
-                            <Image Source="/Images/image_save.png" Width="20" Height="20"/>
-                            <TextBlock>Save</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </ToolBar>
-                <ToolBar>
-                    <Button Click="ZoomFitClick">
-                        <StackPanel>
-                            <Image Source="/Images/fit.png" Width="20" Height="20"/>
-                            <TextBlock Margin="0 3 0 0" FontSize="12" Text="ZoomFit"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Click="ZoomInClick">
-                        <StackPanel>
-                            <Image Source="/Images/zoomin.png" Width="20" Height="20"/>
-                            <TextBlock Margin="0 3 0 0" FontSize="12" Text="ZoomIn"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Click="ZoomOutClick">
-                        <StackPanel>
-                            <Image Source="/Images/zoomout.png" Width="20" Height="20"/>
-                            <TextBlock Margin="0 3 0 0" FontSize="12" Text="ZoomOut"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Command="Paste" Content="Zoom 1:1" />
-                </ToolBar>
-                <ToolBar>
-                    <Label VerticalAlignment="Center">Rotate:</Label>
-                    <ComboBox Width="45" VerticalAlignment="Center" SelectionChanged="ComboBoxChanged">
-                        <ComboBoxItem IsSelected="True" Content="0" ContentStringFormat="Rotate0"/>
-                        <ComboBoxItem Content="90" ContentStringFormat="Rotate90"/>
-                        <ComboBoxItem Content="180" ContentStringFormat="Rotate180"/>
-                        <ComboBoxItem Content="270" ContentStringFormat="Rotate270"/>
-                    </ComboBox>
-                </ToolBar>
-            </ToolBarTray>
-        </DockPanel>
+        <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="0 0 0 1">
+            <DockPanel Margin="0">
+                <ToolBarTray DockPanel.Dock="Top">
+                    <ToolBar>
+                        <Button Command="Open" Margin="5 0 0 0" Width="45">
+                            <StackPanel>
+                                <Image Source="/Images/file_open.png" Width="20" Height="20"/>
+                                <TextBlock>Open</TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="Save" Margin="5 0" Width="45">
+                            <StackPanel>
+                                <Image Source="/Images/image_save.png" Width="20" Height="20"/>
+                                <TextBlock>Save</TextBlock>
+                            </StackPanel>
+                        </Button>
+                    </ToolBar>
+                    <ToolBar>
+                        <Button Click="ZoomFitClick" Width="60">
+                            <StackPanel>
+                                <Image Source="/Images/fit.png" Width="20" Height="20"/>
+                                <TextBlock Margin="0 3 0 0" FontSize="12" Text="ZoomFit"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ZoomInClick" Width="60">
+                            <StackPanel>
+                                <Image Source="/Images/zoomin.png" Width="20" Height="20"/>
+                                <TextBlock Margin="0 3 0 0" FontSize="12" Text="ZoomIn"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ZoomOutClick" Width="60">
+                            <StackPanel>
+                                <Image Source="/Images/zoomout.png" Width="20" Height="20"/>
+                                <TextBlock Margin="0 3 0 0" FontSize="12" Text="ZoomOut"/>
+                            </StackPanel>
+                        </Button>
+                    </ToolBar>
+                    <ToolBar>
+                        <Label VerticalAlignment="Center">Rotate:</Label>
+                        <ComboBox Width="45" VerticalAlignment="Center" SelectionChanged="ComboBoxChanged">
+                            <ComboBoxItem IsSelected="True" Content="0" ContentStringFormat="Rotate0"/>
+                            <ComboBoxItem Content="90" ContentStringFormat="Rotate90"/>
+                            <ComboBoxItem Content="180" ContentStringFormat="Rotate180"/>
+                            <ComboBoxItem Content="270" ContentStringFormat="Rotate270"/>
+                        </ComboBox>
+                    </ToolBar>
+                </ToolBarTray>
+            </DockPanel>
+        </Border>
 
         <!--<ScrollViewer Grid.Row="2" Background="White" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Canvas x:Name="ImageViewer" MouseWheel="CanvasMouseWheel" MouseMove="CanvasMouseMove" 
@@ -95,19 +96,56 @@
         </ScrollViewer>-->
 
         <Grid Grid.Row="2">
-            <views:ImageViewer x:Name="ImageViewer"/>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border BorderBrush="Gray" BorderThickness="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4*"/>
+                        <RowDefinition Height="6*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border BorderBrush="Gray" BorderThickness="0 0 1 1">
+                        <DockPanel>
+                            <Border Height="30" Background="LightGray" BorderBrush="Gray" BorderThickness="0 0 0 1" DockPanel.Dock="Top">
+                                <TextBlock Text="File Manager Bar" VerticalAlignment="Center" Margin="10 0"/>
+                            </Border>
+                            <ListBox Name="ImageListBox" BorderThickness="0"  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="0 0 1 0" >
+                        <DockPanel>
+                            <Border Height="30" Background="LightGray" BorderBrush="Gray" BorderThickness="0 0 0 1" DockPanel.Dock="Top">
+                                <TextBlock Text="Description Bar" VerticalAlignment="Center" Margin="10 0"/>
+                            </Border>
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                <TextBlock Name="MapImageText" Margin="8" FontSize="13"/>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Border>
+            
+            <views:ImageViewer Grid.Column="1" x:Name="ImageViewer"/>
         </Grid>
 
-        <DockPanel Grid.Row="3" Height="30" Background="Silver">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10 0">
-                <TextBlock Name="PointText"/>
-            </StackPanel>
+        <Border Grid.Row="3" BorderBrush="Gray" BorderThickness="0 1 0 0">
+            <DockPanel Height="30" Background="Silver">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10 0">
+                    <TextBlock Name="PointText"/>
+                </StackPanel>
 
-            <Grid HorizontalAlignment="Right" Margin="10 5" Width="200">
-                <ProgressBar Name="ImageProgress" Width="200" Minimum="0" Maximum="100" HorizontalAlignment="Right" />
-                <TextBlock Text="{Binding ElementName=ImageProgress, Path=Value, StringFormat={}{0:0}%}" 
+                <Grid HorizontalAlignment="Right" Margin="10 5" Width="200">
+                    <ProgressBar Name="ImageProgress" Width="200" Minimum="0" Maximum="100" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding ElementName=ImageProgress, Path=Value, StringFormat={}{0:0}%}" 
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Grid>
-        </DockPanel>
+                </Grid>
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

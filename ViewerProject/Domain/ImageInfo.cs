@@ -1,4 +1,6 @@
-﻿namespace ViewerProject.Domain
+﻿using System.Drawing.Imaging;
+
+namespace ViewerProject.Domain
 {
     public class ImageInfo
     {
@@ -16,12 +18,19 @@
 
         public string DataType { get; set; }
 
+        public string Interleave { get; set; }
+
         public string Description { get; set; }
 
         /** 화면에 보여지는 이미지 사이즈 */
         public double ViewerWidth { get; set; }
+
         public double ViewerHeight { get; set; }
 
         public Boundary ImageBoundary { get; internal set; }
+
+        public ImageFormat ImageFormat { get; set; }
+
+        public MapInfo MapInfo { get; set; }
     }
 }

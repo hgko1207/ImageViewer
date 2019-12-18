@@ -1,7 +1,9 @@
-﻿using System.Windows;
+﻿using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using ViewerProject.Domain;
 using ViewerProject.Event;
 using ViewerProject.Views;
 
@@ -15,6 +17,7 @@ namespace ViewerProject
 
             EventAggregator.MouseMoveEvent.Subscribe(CanvasMouseMoveEvent);
             EventAggregator.ProgressEvent.Subscribe(ProgressEvent);
+            EventAggregator.ImageOpenEvent.Subscribe(ImageOpenEvent);
         }
 
         private void CommonCommandBindingCanExecute(object sender, CanExecuteRoutedEventArgs e)
@@ -58,6 +61,24 @@ namespace ViewerProject
         private void ProgressEvent(int value)
         {
             ImageProgress.Dispatcher.Invoke(() => ImageProgress.Value = value + 1, DispatcherPriority.Background);
+        }
+
+        private void ImageOpenEvent(ImageInfo imageInfo)
+        {
+            List<string> imageList = new List<string>();
+            imageList.Add(imageInfo.FileName);
+
+            ImageListBox.ItemsSource = imageList;
+
+            string image = $"Size (X,Y) : ({imageInfo.ImageWidth}, {imageInfo.ImageHeight})\r\n" +
+                $"Band : {imageInfo.Band}\r\n" +
+                $"File Type : {imageInfo.FileType}\r\n" +
+                $"Data Type : {imageInfo.DataType}\r\n" +
+                $"Interleave : {imageInfo.Interleave}\r\n" +
+                $"Proj : {imageInfo.MapInfo.Projcs}\r\n" +
+                $"Unit : {imageInfo.MapInfo.Unit}\r\n";
+
+            MapImageText.Text = image;
         }
     }
 }

@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using ViewerProject.Domain;
 using ViewerProject.Event;
 using ViewerProject.Utils;
@@ -45,7 +42,7 @@ namespace ViewerProject.Views
             {
                 screenWidth = ActualWidth;
                 screenHeight = ActualHeight;
-                Fit2Frame();
+                FitToFrame();
             };
         }
 
@@ -58,53 +55,56 @@ namespace ViewerProject.Views
             if (fileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 ZoomFit();
+                CanvasViewer.Children.Clear();
 
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
 
-                CanvasViewer.Children.Clear();
-
-                string fileName = fileDialog.FileName;
+                string filePath = fileDialog.FileName;
 
                 gdalReader = new GDALReader();
-                gdalReader.FileName = fileDialog.FileName;
-                gdalReader.Open(fileName);
-                imageInfo = gdalReader.GetInfo();
+                gdalReader.FileName = filePath;
+                gdalReader.Open(filePath);
+                imageInfo = gdalReader.GetImageInfo();
 
                 canvasBoundary = imageInfo.ImageBoundary;
 
                 Debug.WriteLine("GDALReader : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
 
-                ImageFormat imageFormat = ImageFormat.Bmp;
-                if (fileName.ToLower().Contains(".png") || fileName.ToLower().Contains(".tif"))
-                    imageFormat = ImageFormat.Png;
-                else if (fileName.ToLower().Contains(".jpg") || fileName.ToLower().Contains(".jpeg"))
-                    imageFormat = ImageFormat.Jpeg;
-
-                System.Drawing.Bitmap bitmap = gdalReader.GetBitmap(0, 0, imageInfo.ImageWidth, imageInfo.ImageHeight);
-
-                Debug.WriteLine("Bitmap : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
-
-                mapImage = new Image()
-                {
-                    Source = ImageControl.Bitmap2BitmapImage(bitmap, imageFormat),
-                    Stretch = Stretch.Fill
-                };
+                InitLoadImage();
 
                 Debug.WriteLine("BitmapImage : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
 
-                Fit2Frame();
+                FitToFrame();
+
+                EventAggregator.ImageOpenEvent.Publish(imageInfo);
 
                 stopwatch.Stop();
                 Debug.WriteLine("Fit2Frame : " + stopwatch.Elapsed.TotalMilliseconds + " msec");
             }
         }
 
+        private void InitLoadImage()
+        {
+            System.Drawing.Bitmap bitmap = gdalReader.GetBitmap(0, 0, imageInfo.ImageWidth, imageInfo.ImageHeight, 2);
+            mapImage = new Image()
+            {
+                Source = ImageControl.Bitmap2BitmapImage(bitmap, imageInfo.ImageFormat),
+                Stretch = Stretch.Fill
+            };
+        }
+
+        private void ReloadImage(Point startPoint, Point endPoint, int overview)
+        {
+            System.Drawing.Bitmap bitmap = gdalReader.GetBitmap((int)startPoint.X, (int)startPoint.Y, (int)endPoint.X, (int)endPoint.Y, overview);
+            mapImage.Source = ImageControl.Bitmap2BitmapImage(bitmap, imageInfo.ImageFormat);
+        }
+
         private bool SetImage()
         {
             try
             {
-                CanvasViewer.Children.Remove(mapImage);
+                CanvasViewer.Children.Clear();
 
                 mapImage.Width = imageInfo.ViewerWidth;
                 mapImage.Height = imageInfo.ViewerHeight;
@@ -131,46 +131,44 @@ namespace ViewerProject.Views
             }
         }
 
-        public bool SetCenter()
+        public void SetCenter()
         {
             if (imageInfo == null)
-                return false;
+                return;
 
-            double canvasWidth = imageInfo.ViewerWidth;
-            double canvasHeight = imageInfo.ViewerHeight;
+            double imageWidth = imageInfo.ViewerWidth;
+            double imageHeight = imageInfo.ViewerHeight;
             if (imageInfo.ImageBoundary != null)
             {
                 double viewPixelPerDegreeX = imageInfo.ViewerWidth / (imageInfo.ImageBoundary.MaxX - imageInfo.ImageBoundary.MinX);
                 double viewPixelPerDegreeY = imageInfo.ViewerHeight / (imageInfo.ImageBoundary.MaxY - imageInfo.ImageBoundary.MinY);
-                canvasWidth = (canvasBoundary.MaxX - canvasBoundary.MinX) * viewPixelPerDegreeX;
-                canvasHeight = (canvasBoundary.MaxY - canvasBoundary.MinY) * viewPixelPerDegreeY;
+                imageWidth = (canvasBoundary.MaxX - canvasBoundary.MinX) * viewPixelPerDegreeX;
+                imageHeight = (canvasBoundary.MaxY - canvasBoundary.MinY) * viewPixelPerDegreeY;
             }
 
             var tt = TranslateTransform;
-            if (screenWidth > canvasWidth)
-                tt.X = (screenWidth - canvasWidth) / 2;
+            if (screenWidth > imageWidth)
+                tt.X = (screenWidth - imageWidth) / 2;
             else
-                tt.X = -(canvasWidth - screenWidth) / 2;
+                tt.X = -(imageWidth - screenWidth) / 2;
 
-            if (screenHeight > canvasHeight)
-                tt.Y = (screenHeight - canvasHeight) / 2;
+            if (screenHeight > imageHeight)
+                tt.Y = (screenHeight - imageHeight) / 2;
             else
-                tt.Y = -(canvasHeight - screenHeight) / 2;
-
-            return true;
+                tt.Y = -(imageHeight - screenHeight) / 2;
         }
 
-        public bool Fit2Frame()
+        public void FitToFrame()
         {
             if (imageInfo == null)
-                return false;
+                return;
 
             if (imageInfo.ImageBoundary == null)
             {
                 if (screenWidth / imageInfo.ViewerWidth < screenHeight / imageInfo.ViewerHeight)
                 {
-                    imageInfo.ViewerHeight *= screenWidth / imageInfo.ViewerWidth;
                     imageInfo.ViewerWidth = screenWidth;
+                    imageInfo.ViewerHeight *= screenWidth / imageInfo.ViewerWidth;
                 }
                 else
                 {
@@ -182,22 +180,22 @@ namespace ViewerProject.Views
             {
                 double viewPixelPerDegreeX = imageInfo.ViewerWidth / (imageInfo.ImageBoundary.MaxX - imageInfo.ImageBoundary.MinX);
                 double viewPixelPerDegreeY = imageInfo.ViewerHeight / (imageInfo.ImageBoundary.MaxY - imageInfo.ImageBoundary.MinY);
-                double canvasWidth = (canvasBoundary.MaxX - canvasBoundary.MinX) * viewPixelPerDegreeX;
-                double canvasHeight = (canvasBoundary.MaxY - canvasBoundary.MinY) * viewPixelPerDegreeY;
+                double imageWidth = (canvasBoundary.MaxX - canvasBoundary.MinX) * viewPixelPerDegreeX;
+                double imageHeight = (canvasBoundary.MaxY - canvasBoundary.MinY) * viewPixelPerDegreeY;
 
-                if (screenWidth / canvasWidth < screenHeight / canvasHeight)
+                if (screenWidth / imageWidth < screenHeight / imageHeight)
                 {
-                    canvasHeight *= screenWidth / canvasWidth;
-                    canvasWidth = screenWidth;
+                    imageWidth = screenWidth;
+                    imageHeight *= screenWidth / imageWidth;
                 }
                 else
                 {
-                    canvasWidth *= screenHeight / canvasHeight;
-                    canvasHeight = screenHeight;
+                    imageWidth *= screenHeight / imageHeight;
+                    imageHeight = screenHeight;
                 }
 
-                viewPixelPerDegreeX = canvasWidth / (canvasBoundary.MaxX - canvasBoundary.MinX);
-                viewPixelPerDegreeY = canvasHeight / (canvasBoundary.MaxY - canvasBoundary.MinY);
+                viewPixelPerDegreeX = imageWidth / (canvasBoundary.MaxX - canvasBoundary.MinX);
+                viewPixelPerDegreeY = imageHeight / (canvasBoundary.MaxY - canvasBoundary.MinY);
 
                 imageInfo.ViewerWidth = (imageInfo.ImageBoundary.MaxX - imageInfo.ImageBoundary.MinX) * viewPixelPerDegreeX;
                 imageInfo.ViewerHeight = (imageInfo.ImageBoundary.MaxY - imageInfo.ImageBoundary.MinY) * viewPixelPerDegreeY;
@@ -205,8 +203,7 @@ namespace ViewerProject.Views
             }
 
             SetImage();
-
-            return SetCenter();
+            SetCenter();
         }
 
         public Point ScreenToImage(Point point)
@@ -231,31 +228,107 @@ namespace ViewerProject.Views
             }
         }
 
-
         private void CanvasMouseWheel(object sender, MouseWheelEventArgs e)
         {
             if (mapImage != null)
             {
-                var st = ScaleTransform;
-                var tt = TranslateTransform;
+                Point point = e.GetPosition(CanvasViewer);
+                Zoom(e.Delta, point);
 
-                double zoom = e.Delta > 0 ? .2 : -.2;
-                if (!(e.Delta > 0) && (st.ScaleX < .4 || st.ScaleY < .4))
-                    return;
+                //var st = ScaleTransform;
+                //var tt = TranslateTransform;
 
-                Point relative = e.GetPosition(CanvasViewer);
-                double abosuluteX;
-                double abosuluteY;
+                //double zoom = e.Delta > 0 ? .2 : -.2;
+                //if (!(e.Delta > 0) && (st.ScaleX < .4 || st.ScaleY < .4))
+                //    return;
 
-                abosuluteX = relative.X * st.ScaleX + tt.X;
-                abosuluteY = relative.Y * st.ScaleY + tt.Y;
+                //double abosuluteX = point.X * st.ScaleX + tt.X;
+                //double abosuluteY = point.Y * st.ScaleY + tt.Y;
 
-                st.ScaleX += zoom;
-                st.ScaleY += zoom;
+                ////st.ScaleX += zoom;
+                ////st.ScaleY += zoom;
 
-                tt.X = abosuluteX - relative.X * st.ScaleX;
-                tt.Y = abosuluteY - relative.Y * st.ScaleY;
+                //tt.X = abosuluteX - point.X * st.ScaleX;
+                //tt.Y = abosuluteY - point.Y * st.ScaleY;
             }
+        }
+
+        private void Zoom(int value, Point point)
+        {
+            double rate = 0.7;
+            if (value > 0) //Zoom in, 확대
+                rate = 1 / rate;
+
+            double offsetX = Math.Abs(point.X * (1 - rate));
+            double offsetY = Math.Abs(point.Y * (1 - rate));
+
+            var tt = TranslateTransform;
+            if (value > 0) //확대
+            {
+                tt.X -= offsetX;
+                tt.Y -= offsetY;
+            }
+            else
+            {
+                tt.X += offsetX;
+                tt.Y += offsetY;
+            }
+
+            imageInfo.ViewerWidth *= rate;
+            imageInfo.ViewerHeight *= rate;
+
+            double endWidth = imageInfo.ViewerWidth;
+            double endHeight = imageInfo.ViewerHeight;
+
+            double startX = 0;
+            double startY = 0;
+            if (tt.X < 0)
+            {
+                startX = Math.Abs(tt.X);
+                if (imageInfo.ViewerWidth > screenWidth)
+                {
+                    endWidth = startX + screenWidth;
+                }
+            }
+
+            if (tt.Y < 0)
+            {
+                startY = Math.Abs(tt.Y);
+                if (imageInfo.ViewerHeight > screenHeight)
+                {
+                    endHeight = startY + screenHeight;
+                }
+            }
+
+            Point startPoint = ScreenToImage(new Point(startX, startY));
+            Point endPoint = ScreenToImage(new Point(endWidth, endHeight));
+
+            //Console.WriteLine($"Screen : {screenWidth}, {screenHeight}");
+            //Console.WriteLine($"Viewer : {imageInfo.ViewerWidth}, {imageInfo.ViewerHeight}");
+            //Console.WriteLine($"TranslateTransform : {tt.X}, {tt.Y}");
+            //Console.WriteLine($"Screen Start : {startX}, {startY}");
+            //Console.WriteLine($"Screen end   : {endWidth}, {endHeight}");
+            //Console.WriteLine($"start imagePoint: {startPoint.X}, {startPoint.Y}");
+            //Console.WriteLine($"end imagePoint: {endPoint.X}, {endPoint.Y}");
+
+            if (endWidth > screenWidth || endHeight > screenHeight)
+            {
+                ReloadImage(startPoint, endPoint, 1);
+            }
+            else if (endWidth <= screenWidth || endHeight <= screenHeight)
+            {
+                ReloadImage(startPoint, endPoint, 4);
+            }
+
+            CanvasViewer.Children.Clear();
+
+            mapImage.Width = imageInfo.ViewerWidth;
+            mapImage.Height = imageInfo.ViewerHeight;
+
+            Canvas.SetLeft(mapImage, -((mapImage.Width - (endWidth + startX)) / 2));
+            Canvas.SetTop(mapImage, -((mapImage.Height - (endHeight + startY)) / 2));
+
+            CanvasViewer.Children.Add(mapImage);
         }
 
         private void CanvasMouseMove(object sender, MouseEventArgs e)
@@ -274,7 +347,7 @@ namespace ViewerProject.Views
                 Point imagePoint = ScreenToImage(position);
                 Point lonlat = gdalReader.ImageToWorld(imagePoint.X, imagePoint.Y);
 
-                String statusLine = $"Map({lonlat.X}, {lonlat.Y}), Image({imagePoint.X}, {imagePoint.Y}), Display({position.X}, {position.Y})";
+                string statusLine = $"Map({lonlat.X}, {lonlat.Y}), Image({imagePoint.X}, {imagePoint.Y}), Display({position.X}, {position.Y})";
                 EventAggregator.MouseMoveEvent.Publish(statusLine);
             }
         }
@@ -283,8 +356,6 @@ namespace ViewerProject.Views
         {
             if (mapImage != null)
             {
-                Console.WriteLine(mapImage.ActualWidth + ", " + mapImage.ActualHeight);
-
                 var tt = TranslateTransform;
                 start = e.GetPosition(this);
                 origin = new Point(tt.X, tt.Y);
@@ -312,10 +383,12 @@ namespace ViewerProject.Views
                 st.ScaleY = 1.0;
 
                 // reset pan
-                //var tt = myTranslateTransform;
+                //var tt = TranslateTransform;
                 //tt.X = 0.0;
                 //tt.Y = 0.0;
-                SetCenter();
+
+                InitLoadImage();
+                FitToFrame();
             }
         }
 
